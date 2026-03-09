@@ -173,3 +173,78 @@ def registeropcodemapping(inst):
 
     return opcode,funct3,funct7,registers,immediate
 
+def to_signed_bin(value,bits):
+
+    if value < 0:
+        value = value + (1 << bits)
+
+    val = value & ((1 << bits) - 1)
+
+    return format(val, '0' + str(bits) + 'b')
+
+
+def encode_instruction(opcode,funct3,funct7,registers,immediate,current_pc,line_number):
+
+    opcode_lookup={
+    "0110011":"rtype",
+    "0000011":"itype","0010011":"itype","1100111":"itype",
+    "0100011":"stype",
+    "1100011":"btype",
+    "0110111":"utype","0010111":"utype",
+    "1101111":"jtype"
+    }
+
+    kind = opcode_lookup.get(opcode,"")
+
+    if kind == "rtype":
+
+        rd  = registers[0]
+        rs1 = registers[1]
+        rs2 = registers[2]
+
+        return funct7 + rs2 + rs1 + funct3 + rd + opcode
+
+    elif kind == "itype":
+
+        rd  = registers[0]
+        rs1 = registers[1]
+
+        imm_bits = to_signed_bin(immediate,12)
+
+        return imm_bits + rs1 + funct3 + rd + opcode
+
+    elif kind == "stype":
+
+        rs2 = registers[0]
+        rs1 = registers[1]
+
+        imm_bits = to_signed_bin(immediate,12)
+
+        return imm_bits[0:7] + rs2 + rs1 + funct3 + imm_bits[7:12] + opcode
+
+    elif kind == "btype":
+
+        rs1 = registers[0]
+        rs2 = registers[1]
+
+        imm_bits = to_signed_bin(immediate >> 1,13)
+
+        return imm_bits[0] + imm_bits[2:8] + rs2 + rs1 + funct3 + imm_bits[8:12] + imm_bits[1] + opcode
+
+    elif kind=="utype":
+
+        rd = registers[0]
+
+        imm_bits = to_signed_bin(immediate,32)
+
+        return imm_bits[0:20] + rd + opcode
+
+    elif kind =="jtype":
+
+        rd = registers[0]
+
+        imm_bits = to_signed_bin(immediate >> 1,21)
+
+        return imm_bits[0] + imm_bits[10:20] + imm_bits[9] + imm_bits[1:9] + rd + opcode
+
+
