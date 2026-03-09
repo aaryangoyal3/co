@@ -17,7 +17,7 @@ def read_assembly_file(filename):
     line_number = 1
     for line in lines:
         line = line.strip()
-        if line == "":
+        if line ==   "":
             line_number += 1
             continue
         if ":" in line:
