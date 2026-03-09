@@ -56,4 +56,18 @@ def parse_instruction(line, line_number):
         sys.exit(1)
     return opcode, operands
 
+def parse_all():
+    parsed = []
+    for item in instructions:
+        apc = item[0]
+        line = item[1]
+        line_number = item[2]
+        opcode, operands = parse_instruction(line, line_number)
+        parsed.append({
+            "pc": apc,
+            "opcode": opcode,
+            "operands": operands,
+            "line": line_number
+        })
+    return parsed
 
