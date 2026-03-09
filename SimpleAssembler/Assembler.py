@@ -246,5 +246,32 @@ def encode_instruction(opcode,funct3,funct7,registers,immediate,current_pc,line_
         imm_bits = to_signed_bin(immediate >> 1,21)
 
         return imm_bits[0] + imm_bits[10:20] + imm_bits[9] + imm_bits[1:9] + rd + opcode
+def main():
 
+    filename = sys.argv[1]
+
+    read_assembly_file(filename)
+
+    parsed = parse_all()
+
+    for inst in parsed:
+
+        opcode,funct3,funct7,registers,imm = registeropcodemapping(inst)
+
+        binary = encode_instruction(
+            opcode,
+            funct3,
+            funct7,
+            registers,
+            imm,
+            inst["pc"],
+            inst["line"]
+        )
+
+        print(binary)
+
+
+if __name__ == "__main__":
+    main()
+ ⁠
 
