@@ -150,5 +150,26 @@ def registeropcodemapping(inst):
     registers=[]
     immediate=0
 
-    
+    for i in inst[1:]:
+
+        if i in registerset1:
+            registers.append(registerset1[i])
+
+        elif i in temporary:
+            registers.append(temporary[i])
+
+        elif i in argument:
+            registers.append(argument[i])
+
+        elif i in savedregister:
+            registers.append(savedregister[i])
+
+        else:
+            try:
+                immediate = immediate + int(i)
+            except:
+                print("Error: Invalid operand", i)
+                sys.exit()
+
+    return opcode,funct3,funct7,registers,immediate
 
