@@ -1,14 +1,19 @@
 import sys
+
 valid_opcodes = {
 "add","sub","slt","sltu","xor","sll","srl","or","and",
 "addi","lw","sltiu","jalr",
 "sw","beq","bne","blt","bge","bltu","bgeu","lui","auipc","jal"
 }
+
 labels = {}
 instructions = []
 pc = 0
+
+
 def read_assembly_file(filename):
     global pc
+
     file = open(filename, "r")
     lines = file.readlines()
 
@@ -20,12 +25,14 @@ def read_assembly_file(filename):
 
         if line == "":
             line_number += 1
-            continue    
+            continue
+
         if ":" in line:
 
             parts = line.split(":",1)
 
             label = parts[0].strip()
+
             if label in labels:
                 print("Error: Duplicate label at line", line_number)
                 sys.exit()
@@ -37,26 +44,41 @@ def read_assembly_file(filename):
             else:
                 line = ""
 
-            if line== "":
+            if line == "":
                 line_number += 1
                 continue
+
         instructions.append((pc, line, line_number))
 
         pc += 4
         line_number += 1
+
+
 def parse_instruction(line,line_number):
 
-    line = line.replace(","," ")
-    line = line.replace("("," ")
-    line = line.replace(")"," ")
+    line = line.replace(",", " ")
+    line = line.replace("(", " ")
+    line = line.replace(")", " ")
 
     parts = line.split()
 
+    if len(parts) == 0:
+        print("Error: Empty instruction at line", line_number)
+        sys.exit()
+
     opcode = parts[0]
+
+    if opcode not in valid_opcodes:
+        print("Error: Invalid opcode", opcode, "at line",line_number)
+        sys.exit()
 
     operands = parts[1:]
 
-    return opcode,operands
+    if len(operands) == 0:
+        print("Error: Missing operands for", opcode, "at line", line_number)
+        sys.exit()
+
+    return opcode, operands
 
 
 def parse_all():
@@ -69,24 +91,25 @@ def parse_all():
         line = item[1]
         line_number = item[2]
 
-        opcode,operands = parse_instruction(line,line_number)
+        opcode, operands = parse_instruction(line, line_number)
 
         parsed.append({
             "pc":apc,
-            "opcode":opcode,
-            "operands":operands,
-            "line":line_number
+            "opcode": opcode,
+            "operands": operands,
+            "line": line_number
         })
 
     return parsed
+
+
 def registeropcodemapping(inst):
-    #registermapping
+
     registerset1={"zero":"00000","ra":"00001","sp":"00010","gp":"00011","tp":"00100"}
     temporary={"t0":"00101","t1":"00110","t2":"00111","t3":"11100","t4":"11101","t5":"11110","t6":"11111"}
     argument={"a0":"01010","a1":"01011","a2":"01100","a3":"01101","a4":"01110","a5":"01111","a6":"10000","a7":"10001"}
     savedregister={"s0":"01000","s1":"01001","s2":"10010","s3":"10011","s4":"10100","s5":"10101","s6":"10110","s7":"10111","s8":"11000","s9":"11001","s10":"11010","s11":"11011"}
 
-    #opcodefuct3funct7mapping
     rtype = {
     "add":{"opcode":"0110011","funct3":"000","funct7":"0000000"},
     "sub":{"opcode":"0110011","funct3":"000","funct7":"0100000"},
@@ -106,9 +129,11 @@ def registeropcodemapping(inst):
     "jalr":{"opcode":"1100111","funct3":"000"}
     }
 
-    stype = {"sw":{"opcode":"0100011","funct3":"010"}}
+    stype= {
+    "sw":{"opcode":"0100011","funct3":"010"}
+    }
 
-    btype = {
+    btype ={
     "beq":{"opcode":"1100011","funct3":"000"},
     "bne":{"opcode":"1100011","funct3":"001"},
     "blt":{"opcode":"1100011","funct3":"100"},
@@ -117,16 +142,21 @@ def registeropcodemapping(inst):
     "bgeu":{"opcode":"1100011","funct3":"111"}
     }
 
-    utype = {
+    utype ={
     "lui":{"opcode":"0110111"},
     "auipc":{"opcode":"0010111"}
     }
 
-    jtype = {"jal":{"opcode":"1101111"}}
+    jtype ={
+    "jal":{"opcode":"1101111"}
+    }
 
-    instruction = inst[0]
+    instruction= inst["opcode"]
+    operands = inst["operands"]
+    current_pc = inst["pc"]
 
     main={}
+
     if instruction in rtype:
         main = rtype[instruction]
     elif instruction in itype:
@@ -136,12 +166,12 @@ def registeropcodemapping(inst):
     elif instruction in btype:
         main = btype[instruction]
     elif instruction in utype:
-        main = utype[instruction]
+        main= utype[instruction]
     elif instruction in jtype:
         main = jtype[instruction]
     else:
         print("Invalid Instruction")
-        return
+        sys.exit()
 
     opcode = main["opcode"]
     funct3 = main.get("funct3","")
@@ -150,20 +180,18 @@ def registeropcodemapping(inst):
     registers=[]
     immediate=0
 
-    for i in inst[1:]:
+    for i in operands:
 
         if i in registerset1:
             registers.append(registerset1[i])
-
         elif i in temporary:
             registers.append(temporary[i])
-
         elif i in argument:
             registers.append(argument[i])
-
         elif i in savedregister:
             registers.append(savedregister[i])
-
+        elif i in labels:
+            immediate = labels[i] - current_pc
         else:
             try:
                 immediate = immediate + int(i)
@@ -172,6 +200,7 @@ def registeropcodemapping(inst):
                 sys.exit()
 
     return opcode,funct3,funct7,registers,immediate
+
 
 def to_signed_bin(value,bits):
 
@@ -185,7 +214,7 @@ def to_signed_bin(value,bits):
 
 def encode_instruction(opcode,funct3,funct7,registers,immediate,current_pc,line_number):
 
-    opcode_lookup={
+    opcode_lookup ={
     "0110011":"rtype",
     "0000011":"itype","0010011":"itype","1100111":"itype",
     "0100011":"stype",
@@ -197,55 +226,74 @@ def encode_instruction(opcode,funct3,funct7,registers,immediate,current_pc,line_
     kind = opcode_lookup.get(opcode,"")
 
     if kind == "rtype":
-
         rd  = registers[0]
         rs1 = registers[1]
         rs2 = registers[2]
-
-        return funct7 + rs2 + rs1 + funct3 + rd + opcode
+        binary = funct7 + rs2 + rs1 + funct3 + rd + opcode
+        return binary
 
     elif kind == "itype":
-
         rd  = registers[0]
         rs1 = registers[1]
-
         imm_bits = to_signed_bin(immediate,12)
-
-        return imm_bits + rs1 + funct3 + rd + opcode
+        binary = imm_bits + rs1 + funct3 + rd + opcode
+        return binary
 
     elif kind == "stype":
-
         rs2 = registers[0]
         rs1 = registers[1]
-
         imm_bits = to_signed_bin(immediate,12)
 
-        return imm_bits[0:7] + rs2 + rs1 + funct3 + imm_bits[7:12] + opcode
+        imm_11_5 = imm_bits[0:7]
+        imm_4_0  = imm_bits[7:12]
+
+        binary = imm_11_5 + rs2 + rs1 + funct3 + imm_4_0 + opcode
+        return binary
 
     elif kind == "btype":
 
         rs1 = registers[0]
         rs2 = registers[1]
 
-        imm_bits = to_signed_bin(immediate >> 1,13)
+        imm_bits = to_signed_bin(immediate,13)
 
-        return imm_bits[0] + imm_bits[2:8] + rs2 + rs1 + funct3 + imm_bits[8:12] + imm_bits[1] + opcode
+        imm12   = imm_bits[0]
+        imm11   = imm_bits[1]
+        imm10_5 = imm_bits[2:8]
+        imm4_1  = imm_bits[8:12]
+
+        binary= imm12 + imm10_5 + rs2 + rs1 + funct3 + imm4_1 + imm11 + opcode
+        return binary
 
     elif kind=="utype":
 
         rd = registers[0]
 
         imm_bits = to_signed_bin(immediate,32)
+        imm31_12 = imm_bits[0:20]
 
-        return imm_bits[0:20] + rd + opcode
+        binary = imm31_12 + rd + opcode
+        return binary
 
     elif kind =="jtype":
 
         rd = registers[0]
 
-        imm_bits = to_signed_bin(immediate >> 1,21)
+        imm_bits = to_signed_bin(immediate,21)
 
-        return imm_bits[0] + imm_bits[10:20] + imm_bits[9] + imm_bits[1:9] + rd + opcode
+        imm20    = imm_bits[0]
+        imm19_12 = imm_bits[1:9]
+        imm11    = imm_bits[9]
+        imm10_1  = imm_bits[10:20]
+
+        binary = imm20 + imm10_1 + imm11 + imm19_12 + rd + opcode
+        return binary
+
+    else:
+        print("Error: Cannot encode instruction at line", line_number)
+        sys.exit()
+
+
 def main():
 
     filename = sys.argv[1]
@@ -271,7 +319,5 @@ def main():
         print(binary)
 
 
-if __name__ == "__main__":
+if __name__ == "_main_":
     main()
- ⁠
-
