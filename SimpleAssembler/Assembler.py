@@ -44,3 +44,39 @@ def read_assembly_file(filename):
 
         pc += 4
         line_number += 1
+def parse_instruction(line,line_number):
+
+    line = line.replace(","," ")
+    line = line.replace("("," ")
+    line = line.replace(")"," ")
+
+    parts = line.split()
+
+    opcode = parts[0]
+
+    operands = parts[1:]
+
+    return opcode,operands
+
+
+def parse_all():
+
+    parsed = []
+
+    for item in instructions:
+
+        apc = item[0]
+        line = item[1]
+        line_number = item[2]
+
+        opcode,operands = parse_instruction(line,line_number)
+
+        parsed.append({
+            "pc":apc,
+            "opcode":opcode,
+            "operands":operands,
+            "line":line_number
+        })
+
+    return parsed
+
