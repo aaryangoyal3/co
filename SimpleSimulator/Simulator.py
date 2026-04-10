@@ -1,3 +1,4 @@
+from py_compile import main
 import sys
 
 MEMORY_BASE = 0x00010000
@@ -200,4 +201,27 @@ def runProgram(program):
 
     trace.extend(collectMemorySnapshot(mem))
     return trace
-    
+def main():
+
+    if len(sys.argv) < 3:
+        print("usage: python sim.py input.txt output.txt")
+        return
+    try:
+        with open(sys.argv[1]) as f:
+            program = [line.strip() for line in f if line.strip()]
+    except:
+        print("error: Cannot read input file")
+
+        return
+
+    try:
+        output = runProgram(program)
+        with open(sys.argv[2], "w") as f:
+            f.writelines(output)
+    except SimulationError as e:
+        if e.partial:
+            with open(sys.argv[2], "w") as f:
+                f.writelines(e.partial)
+        print("Simulation Error:", e)
+if __name__ == "__main__":
+    main()
