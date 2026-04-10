@@ -159,4 +159,45 @@ def runProgram(program):
                 elif funct3 == 0x7: take = a >= b
                 else:
                     raise SimulationError("Unsupported branch", trace)
+                if take:
+                    next_pc = pc +  imm
+            elif opcode == 0x6F:
+                imm = ((inst >> 31) << 20) | (((inst >> 12) & 0xFF) << 12) | (((inst >> 20) & 1) << 11) | (((inst >> 21) & 0x3FF) << 1)
+                imm = stretchSignBits(imm, 21)
+
+                if rd !=0:
+                    regs[rd] = wrapToUnsigned32(pc + 4)
+                next_pc = pc + imm
+            elif opcode == 0x67:
+                imm = stretchSignBits((inst >> 20) & 0xFFF, 12)
+                target = (regs[rs1] + imm) & ~1
+
+                if rd != 0:
+                    regs[rd] = wrapToUnsigned32(pc + 4)
+
+                next_pc = wrapToUnsigned32(target)
+            elif opcode == 0x37:  # LUI
+                if rd != 0:
+                    regs[rd] = inst & 0xFFFFF000
+
+            elif opcode == 0x17:  # AUIPC
+                if rd != 0:
+                    regs[rd] = wrapToUnsigned32(pc + (inst & 0xFFFFF000))
+ 
+            else:
+                raise SimulationError("Unsupported oPcode", trace)
+
+            regs[0] =   0
+            pc = wrapToUnsigned32(next_pc)
+            trace.append(buildTraceLine(pc, regs))
+            if raw ==  HALT:
+                break
+            steps = steps + 1
+        except SimulationError:
+            raise
+        except Exception as e:
+            raise SimulationError(str(e), trace)
+
+    trace.extend(collectMemorySnapshot(mem))
+    return trace
     
