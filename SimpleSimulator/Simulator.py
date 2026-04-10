@@ -1,4 +1,3 @@
-from py_compile import main
 import sys
 
 MEMORY_BASE = 0x00010000
