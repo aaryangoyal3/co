@@ -136,3 +136,27 @@ def runProgram(program):
                     raise SimulationError(f"Unaligned load at {addr}", trace)
                 if rd != 0:
                     regs[rd] = mem.get(addr, 0)
+            elif opcode == 0x23:
+                imm = ((inst >> 25) << 5) | ((inst >> 7) & 0x1F)
+                imm = stretchSignBits(imm, 12)
+                addr = wrapToUnsigned32(regs[rs1] + imm)
+
+                if not addressLooksValid(addr):
+                    raise  SimulationError(f"Unaligned store at {addr}", trace)
+                mem[addr] =  regs[rs2]
+            elif opcode == 0x63:
+                imm = ((inst >> 31) << 12) | (((inst >> 7) & 1) << 11) | (((inst >> 25) & 0x3F) << 5) | (((inst >> 8) & 0xF) << 1)
+                imm = stretchSignBits(imm, 13)
+
+                a = regs[rs1]
+                b = regs[rs2]
+                take = False
+                if funct3 == 0x0: take = (a == b)
+                elif funct3 == 0x1: take = (a != b)
+                elif funct3 == 0x4: take = interpretAsSigned32(a) < interpretAsSigned32(b)
+                elif funct3 == 0x5: take = interpretAsSigned32(a) >= interpretAsSigned32(b)
+                elif funct3 == 0x6: take = a < b
+                elif funct3 == 0x7: take = a >= b
+                else:
+                    raise SimulationError("Unsupported branch", trace)
+    
